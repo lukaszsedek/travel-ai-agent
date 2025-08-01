@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  build:
+  build-docker:
 
     runs-on: ubuntu-latest
 
@@ -16,3 +16,15 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      
+    - name: Install Trivy
+      run: |
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+    - name: Scan Docker image with Trivy
+      run: trivy image --exit-code 1 --severity HIGH,CRITICAL my-image-name:${SHORT_SHA}
+      
+    - name: Clean up
+      run: |
+        docker rm -f app || true
+        docker rmi my-image-name:${SHORT_SHA} || true
